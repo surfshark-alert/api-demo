@@ -1,0 +1,8 @@
+# Folders
+node_modules/
+.vscode/
+.idea/
+
+# Files
+*.log
+.DS_Store

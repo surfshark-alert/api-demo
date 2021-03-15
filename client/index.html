@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Alert API Demo page</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css" />
+    </head>
+    <body>
+        <div id="container" style="padding-top: 24px; padding-left: 24px; width: 500px; margin:0 auto">
+            <img src='alert-logo.svg' style="display: block; margin: 0 auto"/>
+            <div id="disclaimer" class="ui warning message">
+                This demo page's purpose is to demonstrate the bare minimum required to check a password against known
+                breaches. <br /><b>This is not a production ready code!</b>
+            </div>
+            <form id="password-check-form" class="ui form">
+                <div class="field">
+                    <label for="password-input">Password: </label>
+                    <input type="password" id="password-input" />
+                </div>
+                <input type="submit" value="Check password" class="ui button" />
+            </form>
+        </div>
+
+        <script type="text/javascript">
+            var CryptoJS = window.CryptoJS || {};
+            var passwordForm = document.getElementById('password-check-form');
+
+            passwordForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                var passwordText = document.getElementById('password-input').value;
+                var hashedPassword = CryptoJS.SHA1(passwordText).toString();
+
+                submitPassword(hashedPassword);
+            });
+
+            function submitPassword(password) {
+                if (!!password) {
+                    removeMessage();
+                    setLoading(true);
+                    var xhr = new XMLHttpRequest();
+                    xhr.addEventListener('load', function () {
+                        setLoading(false);
+                        var response = JSON.parse(this.responseText) || {};
+                        if (response.message) {
+                            addMessage('error', 'Error: ' + response.message);
+                        } else {
+                            checkPassword(password, response);
+                        }
+                    });
+
+                    xhr.open('GET', '/api/identity/pass/' + password.substring(0, 5));
+                    xhr.responseType = 'text';
+                    xhr.send();
+                }
+            }
+
+            function checkPassword(userPass, breachList) {
+                var passwordBreachCount = getPasswordBreaches(userPass, breachList)
+                if (!!passwordBreachCount) {
+                    addMessage('error', 'Password is breached. ' + 'It was found in ' + passwordBreachCount + ' known breaches.');
+                } else {
+                    addMessage('success', 'Password is not breached');
+                }
+            }
+
+            function getPasswordBreaches(password, breaches) {
+                return breaches.hasOwnProperty(password) && breaches[password] || 0;
+            }
+
+            function addMessage(type, messageText) {
+                var messageDiv = document.getElementById('result-message');
+
+                if (!messageDiv) {
+                    messageDiv = document.createElement('div');
+                    messageDiv.id = 'result-message';
+                    document.getElementById('container').appendChild(messageDiv);
+                }
+
+                messageDiv.className =
+                    type === 'error' ? 'ui error message' : type === 'success' ? 'ui success message' : '';
+
+                messageDiv.innerText = messageText;
+            }
+
+            function removeMessage() {
+                var messageDiv = document.getElementById('result-message');
+                if (messageDiv) messageDiv.parentElement.removeChild(messageDiv);
+            }
+
+            function setLoading(state) {
+                var form = document.getElementById('password-check-form');
+                if (state) form.classList.add('loading');
+                else form.classList.remove('loading');
+            }
+        </script>
+    </body>
+</html>
